@@ -52,10 +52,7 @@ def error(msg):
 def is_float_between_0_and_1(value):
     try:
         val = float(value)
-        if val > 0.0 and val < 1.0:
-            return True
-        else:
-            return False
+        return val > 0.0 and val < 1.0
     except ValueError:
         return False
 
@@ -66,7 +63,7 @@ def is_float_between_0_and_1(value):
   2nd) We compute the AP as the area under this curve by numerical integration.
 """
 def voc_ap(rec, prec):
-    
+
     """
     --- Official matlab code VOC2012---
     mrec=[0 ; rec ; 1];
@@ -96,11 +93,7 @@ def voc_ap(rec, prec):
     """
     This part creates a list of indexes where the recall changes
     """
-  # matlab: i=find(mrec(2:end)~=mrec(1:end-1))+1;
-    i_list = []
-    for i in range(1, len(mrec)):
-        if mrec[i] != mrec[i-1]:
-            i_list.append(i) # if it was matlab would be i + 1
+    i_list = [i for i in range(1, len(mrec)) if mrec[i] != mrec[i-1]]
     """
     The Average Precision (AP) is the area under the curve (numerical integration)
     """

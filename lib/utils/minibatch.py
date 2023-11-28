@@ -24,7 +24,9 @@ def get_minibatch(roidb, num_classes):
     # Sample random scales to use for each image in this batch
     random_scale_inds = npr.randint(0, high=len(cfg.FLAGS2["scales"]),
                                     size=num_images)
-    assert (cfg.FLAGS.batch_size % num_images == 0), 'num_images ({}) must divide BATCH_SIZE ({})'.format(num_images, cfg.FLAGS.batch_size)
+    assert (
+        cfg.FLAGS.batch_size % num_images == 0
+    ), f'num_images ({num_images}) must divide BATCH_SIZE ({cfg.FLAGS.batch_size})'
 
     # Get the input image blob, formatted for caffe
     im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)

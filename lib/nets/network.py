@@ -60,15 +60,16 @@ class Network(object):
         return tf.summary.image('ground_truth', image)
 
     def _add_act_summary(self, tensor):
-        tf.summary.histogram('ACT/' + tensor.op.name + '/activations', tensor)
-        tf.summary.scalar('ACT/' + tensor.op.name + '/zero_fraction',
-                          tf.nn.zero_fraction(tensor))
+        tf.summary.histogram(f'ACT/{tensor.op.name}/activations', tensor)
+        tf.summary.scalar(
+            f'ACT/{tensor.op.name}/zero_fraction', tf.nn.zero_fraction(tensor)
+        )
 
     def _add_score_summary(self, key, tensor):
-        tf.summary.histogram('SCORE/' + tensor.op.name + '/' + key + '/scores', tensor)
+        tf.summary.histogram(f'SCORE/{tensor.op.name}/{key}/scores', tensor)
 
     def _add_train_summary(self, var):
-        tf.summary.histogram('TRAIN/' + var.op.name, var)
+        tf.summary.histogram(f'TRAIN/{var.op.name}', var)
 
     # Custom Layers #
     def _reshape_layer(self, bottom, num_dim, name):
@@ -78,9 +79,7 @@ class Network(object):
             to_caffe = tf.transpose(bottom, [0, 3, 1, 2])
             # then force it to have channel 2
             reshaped = tf.reshape(to_caffe, tf.concat(axis=0, values=[[self._batch_size], [num_dim, -1], [input_shape[2]]]))
-            # then swap the channel back
-            to_tf = tf.transpose(reshaped, [0, 2, 3, 1])
-            return to_tf
+            return tf.transpose(reshaped, [0, 2, 3, 1])
 
     def _softmax_layer(self, bottom, name):
         if name == 'rpn_cls_prob_reshape':
@@ -204,14 +203,10 @@ class Network(object):
         smoothL1_sign = tf.stop_gradient(tf.to_float(tf.less(abs_in_box_diff, 1. / sigma_2)))
         in_loss_box = tf.pow(in_box_diff, 2) * (sigma_2 / 2.) * smoothL1_sign + (abs_in_box_diff - (0.5 / sigma_2)) * (1. - smoothL1_sign)
         out_loss_box = bbox_outside_weights * in_loss_box
-        loss_box = tf.reduce_mean(tf.reduce_sum(
-            out_loss_box,
-            axis=dim
-        ))
-        return loss_box
+        return tf.reduce_mean(tf.reduce_sum(out_loss_box, axis=dim))
 
     def _add_losses(self, sigma_rpn=3.0):
-        with tf.variable_scope('loss_' + self._tag):
+        with tf.variable_scope(f'loss_{self._tag}'):
             # RPN, class loss
             rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
             rpn_label = tf.reshape(self._anchor_targets['rpn_labels'], [-1])
@@ -312,8 +307,10 @@ class Network(object):
         val_summaries = []
         with tf.device("/cpu:0"):
             val_summaries.append(self._add_image_summary(self._image, self._gt_boxes))
-            for key, var in self._event_summaries.items():
-                val_summaries.append(tf.summary.scalar(key, var))
+            val_summaries.extend(
+                tf.summary.scalar(key, var)
+                for key, var in self._event_summaries.items()
+            )
             for key, var in self._score_summaries.items():
                 self._add_score_summary(key, var)
             for var in self._act_summaries:
@@ -337,8 +334,7 @@ class Network(object):
     # only useful during testing mode
     def extract_head(self, sess, image):
         feed_dict = {self._image: image}
-        feat = sess.run(self._layers["head"], feed_dict=feed_dict)
-        return feat
+        return sess.run(self._layers["head"], feed_dict=feed_dict)
 
     # only useful during testing mode
     def test_image(self, sess, image, im_info):
@@ -354,9 +350,7 @@ class Network(object):
     def get_summary(self, sess, blobs):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                      self._gt_boxes: blobs['gt_boxes']}
-        summary = sess.run(self._summary_op_val, feed_dict=feed_dict)
-
-        return summary
+        return sess.run(self._summary_op_val, feed_dict=feed_dict)
 
     def train_step(self, sess, blobs, train_op):
         feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],

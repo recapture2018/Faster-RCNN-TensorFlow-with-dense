@@ -21,17 +21,16 @@ def load_annotation(index):
     
     #Load image and bounding boxes info from XML file 
     data_path = 'C:/Users/37112/Faster-RCNN-TensorFlow-Python3.5-master/data/VOCDevkit2007/VOC2007'
-    filename = os.path.join(data_path, 'Annotations', index + '.xml')
+    filename = os.path.join(data_path, 'Annotations', f'{index}.xml')
     tree = ET.parse(filename)
     objs = tree.findall('object')
-    if not False:
-        # Exclude the samples labeled as difficult
-        non_diff_objs = [
-            obj for obj in objs if int(obj.find('difficult').text) == 0]
-        # if len(non_diff_objs) != len(objs):
-        #     print 'Removed {} difficult objects'.format(
-        #         len(objs) - len(non_diff_objs))
-        objs = non_diff_objs
+    # Exclude the samples labeled as difficult
+    non_diff_objs = [
+        obj for obj in objs if int(obj.find('difficult').text) == 0]
+    # if len(non_diff_objs) != len(objs):
+    #     print 'Removed {} difficult objects'.format(
+    #         len(objs) - len(non_diff_objs))
+    objs = non_diff_objs
     num_objs = len(objs)
 
     boxes = np.zeros((num_objs, 4), dtype=np.uint16)

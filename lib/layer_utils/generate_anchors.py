@@ -47,9 +47,12 @@ def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
 
     base_anchor = np.array([1, 1, base_size, base_size]) - 1
     ratio_anchors = _ratio_enum(base_anchor, ratios)
-    anchors = np.vstack([_scale_enum(ratio_anchors[i, :], scales)
-                         for i in range(ratio_anchors.shape[0])])
-    return anchors
+    return np.vstack(
+        [
+            _scale_enum(ratio_anchors[i, :], scales)
+            for i in range(ratio_anchors.shape[0])
+        ]
+    )
 
 
 def _whctrs(anchor):
@@ -72,11 +75,14 @@ def _mkanchors(ws, hs, x_ctr, y_ctr):
 
     ws = ws[:, np.newaxis]
     hs = hs[:, np.newaxis]
-    anchors = np.hstack((x_ctr - 0.5 * (ws - 1),
-                         y_ctr - 0.5 * (hs - 1),
-                         x_ctr + 0.5 * (ws - 1),
-                         y_ctr + 0.5 * (hs - 1)))
-    return anchors
+    return np.hstack(
+        (
+            x_ctr - 0.5 * (ws - 1),
+            y_ctr - 0.5 * (hs - 1),
+            x_ctr + 0.5 * (ws - 1),
+            y_ctr + 0.5 * (hs - 1),
+        )
+    )
 
 
 def _ratio_enum(anchor, ratios):
@@ -88,8 +94,7 @@ def _ratio_enum(anchor, ratios):
     size_ratios = size / ratios
     ws = np.round(np.sqrt(size_ratios))
     hs = np.round(ws * ratios)
-    anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
-    return anchors
+    return _mkanchors(ws, hs, x_ctr, y_ctr)
 
 
 def _scale_enum(anchor, scales):
@@ -100,8 +105,7 @@ def _scale_enum(anchor, scales):
     w, h, x_ctr, y_ctr = _whctrs(anchor)
     ws = w * scales
     hs = h * scales
-    anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
-    return anchors
+    return _mkanchors(ws, hs, x_ctr, y_ctr)
 
 
 if __name__ == '__main__':

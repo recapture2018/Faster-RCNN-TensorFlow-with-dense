@@ -40,8 +40,8 @@ def _get_image_blob(im):
     im_orig -= cfg.FLAGS2["pixel_means"]
 
     im_shape = im_orig.shape
-    im_size_min = np.min(im_shape[0:2])
-    im_size_max = np.max(im_shape[0:2])
+    im_size_min = np.min(im_shape[:2])
+    im_size_max = np.max(im_shape[:2])
 
     processed_ims = []
     im_scale_factors = []

@@ -45,5 +45,4 @@ def validate_boxes(boxes, width=0, height=0):
 def filter_small_boxes(boxes, min_size):
     w = boxes[:, 2] - boxes[:, 0]
     h = boxes[:, 3] - boxes[:, 1]
-    keep = np.where((w >= min_size) & (h > min_size))[0]
-    return keep
+    return np.where((w >= min_size) & (h > min_size))[0]

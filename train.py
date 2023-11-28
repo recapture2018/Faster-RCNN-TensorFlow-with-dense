@@ -21,23 +21,21 @@ except ImportError:
 import os
 
 def get_training_roidb(imdb):
-    """Returns a roidb (Region of Interest database) for use in training."""
-    #返回一个用于训练的感兴趣区域的数据库
-    if True:
-        print('Appending horizontally-flipped training examples...')
-        """其作用是将数据集中的每张图的所有bounding box标签进行水平翻转，
+  """Returns a roidb (Region of Interest database) for use in training."""
+  print('Appending horizontally-flipped training examples...')
+  """其作用是将数据集中的每张图的所有bounding box标签进行水平翻转，
         然后将图片信息字典中的'flipped'置为True，并将这一新的字典添加进
         原始的roidb list中，这样图片信息列表的长度就变为了原来的2倍。
         最后将数据集实例中的_image_index成员（所有图片名的list）复制了一份，
         长度也变为了原来的2倍。"""
-        imdb.append_flipped_images()
-        print('done')
+  imdb.append_flipped_images()
+  print('done')
 
-    print('Preparing training data...')
-    rdl_roidb.prepare_roidb(imdb)
-    print('done')
+  print('Preparing training data...')
+  rdl_roidb.prepare_roidb(imdb)
+  print('done')
 
-    return imdb.roidb
+  return imdb.roidb
 
 def combined_roidb(imdb_names):
     """
@@ -178,15 +176,14 @@ class Train:
                 self.snapshot(sess, iter )
 
     def get_variables_in_checkpoint_file(self, file_name):
-        try:
-            reader = pywrap_tensorflow.NewCheckpointReader(file_name)
-            var_to_shape_map = reader.get_variable_to_shape_map()
-            return var_to_shape_map
-        except Exception as e:  # pylint: disable=broad-except
-            print(str(e))
-            if "corrupted compressed block contents" in str(e):
-                print("It's likely that your checkpoint file has been compressed "
-                      "with SNAPPY.")
+      try:
+        reader = pywrap_tensorflow.NewCheckpointReader(file_name)
+        return reader.get_variable_to_shape_map()
+      except Exception as e:# pylint: disable=broad-except
+        print(e)
+        if "corrupted compressed block contents" in str(e):
+            print("It's likely that your checkpoint file has been compressed "
+                  "with SNAPPY.")
 
     def snapshot(self, sess, iter):
         net = self.net

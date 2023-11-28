@@ -24,10 +24,7 @@ class imdb(object):
     def __init__(self, name, classes=None):
         self._name = name
         self._num_classes = 0
-        if not classes:
-            self._classes = []
-        else:
-            self._classes = classes
+        self._classes = [] if not classes else classes
         self._image_index = []
         self._obj_proposer = 'gt'
         self._roidb = None
@@ -60,7 +57,7 @@ class imdb(object):
         self._roidb_handler = val
 
     def set_proposal_method(self, method):
-        method = eval('self.' + method + '_roidb')
+        method = eval(f'self.{method}_roidb')
         self.roidb_handler = method
 
     @property
@@ -154,7 +151,7 @@ class imdb(object):
                        [256 ** 2, 512 ** 2],  # 256-512
                        [512 ** 2, 1e5 ** 2],  # 512-inf
                        ]
-        assert area in areas, 'unknown area range: {}'.format(area)
+        assert area in areas, f'unknown area range: {area}'
         area_range = area_ranges[areas[area]]
         gt_overlaps = np.zeros(0)
         num_pos = 0

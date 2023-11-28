@@ -91,7 +91,7 @@ def _dense_block(inputs, convs_each_num_layers, num_filters, growth_rate,
         net = inputs
         for i in range(convs_each_num_layers):
             branch = i + 1
-            net = _conv_block(net, growth_rate, scope='conv_block'+str(branch))
+            net = _conv_block(net, growth_rate, scope=f'conv_block{str(branch)}')
 
             if grow_num_filters:
                 num_filters += growth_rate
@@ -146,79 +146,85 @@ def densenet(inputs,
         inputs = tf.transpose(inputs, [0, 3, 1, 2])
 
     with tf.variable_scope(scope, 'densenetxxx', [inputs, num_classes],
-                         reuse=reuse) as sc:
-        end_points_collection = sc.name + '_end_points'
-        with slim.arg_scope([slim.batch_norm, slim.dropout],
-                         is_training=is_training), \
-             slim.arg_scope([slim.conv2d, _conv, _conv_block,
-                         _dense_block, _transition_block], 
-                         outputs_collections=end_points_collection), \
-             slim.arg_scope([_conv], dropout_rate=dropout_rate):
-             net = inputs
-             
-             if include_root_block:
+                             reuse=reuse) as sc:
+        end_points_collection = f'{sc.name}_end_points'
+        with (slim.arg_scope([slim.batch_norm, slim.dropout],
+                                 is_training=is_training), slim.arg_scope([slim.conv2d, _conv, _conv_block,
+                                 _dense_block, _transition_block], 
+                                 outputs_collections=end_points_collection), slim.arg_scope([_conv], dropout_rate=dropout_rate)):
+            net = inputs
+
+            if include_root_block:
              # initial convolution
 #                 net = slim.conv2d(net, num_filters, 7, stride=2, scope='conv1')
 #                 net = slim.batch_norm(net)
 #                 net = tf.nn.relu(net)
 #                 net = slim.max_pool2d(net, 3, stride=2, padding='SAME')
-                 net = resnet_utils.conv2d_same(net, 64, 7, stride=2, scope='conv1')
-                 net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
-                 net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
+                net = resnet_utils.conv2d_same(net, 64, 7, stride=2, scope='conv1')
+                net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
+                net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-             if base_net:
+            if base_net:
                  # blocks
-                 for i in range(num_dense_blocks - 1):
+                for i in range(num_dense_blocks - 1):
                      # dense blocks
-                     net, num_filters = _dense_block(net, convs_each_num_layers[i], num_filters,
-                                            growth_rate,
-                                            scope='dense_block' + str(i+1))
-    
+                    net, num_filters = _dense_block(
+                        net,
+                        convs_each_num_layers[i],
+                        num_filters,
+                        growth_rate,
+                        scope=f'dense_block{str(i + 1)}',
+                    )
+
                      # Add transition_block
-                     if i == num_dense_blocks - 2:
-                         last_one = True
-                     else:
-                         last_one = False
-                     net, num_filters = _transition_block(net, num_filters,
-                                                 compression=compression, last_one=last_one,
-                                                 scope='transition_block' + str(i+1))
-    
-                 net, num_filters = _dense_block(
-                 net, convs_each_num_layers[-1], num_filters,
-                 growth_rate,
-                 scope='dense_block' + str(num_dense_blocks))
-             else:
-                 for i in range(num_dense_blocks - 1):
-                     # dense blocks
-                     net, num_filters = _dense_block(net, convs_each_num_layers[i], num_filters,
-                                            growth_rate)
-    
-                     # Add transition_block
-                     net, num_filters = _transition_block(net, num_filters,
-                                                 compression=compression)
-    
-                 net, num_filters = _dense_block(
-                 net, convs_each_num_layers[-1], num_filters, growth_rate)
+                    last_one = i == num_dense_blocks - 2
+                    net, num_filters = _transition_block(
+                        net,
+                        num_filters,
+                        compression=compression,
+                        last_one=last_one,
+                        scope=f'transition_block{str(i + 1)}',
+                    )
 
-             # final blocks
-             if global_pool:
-                 with tf.variable_scope('final_block', [inputs]):
-                     net = slim.batch_norm(net)
-                     net = tf.nn.relu(net)
-                     net = _global_avg_pool2d(net, scope='global_avg_pool')
-                     
-             if num_classes is not None:
-                 net = slim.conv2d(net, num_classes, 1,
-                            biases_initializer=tf.zeros_initializer(),
-                            scope='logits')
+                net, num_filters = _dense_block(
+                    net,
+                    convs_each_num_layers[-1],
+                    num_filters,
+                    growth_rate,
+                    scope=f'dense_block{num_dense_blocks}',
+                )
+            else:
+                for i in range(num_dense_blocks - 1):
+                    # dense blocks
+                    net, num_filters = _dense_block(net, convs_each_num_layers[i], num_filters,
+                                           growth_rate)
 
-             end_points = slim.utils.convert_collection_to_dict(
-                     end_points_collection)
+                    # Add transition_block
+                    net, num_filters = _transition_block(net, num_filters,
+                                                compression=compression)
 
-             if num_classes is not None:
-                 end_points['predictions'] = slim.softmax(net, scope='predictions')
+                net, num_filters = _dense_block(
+                net, convs_each_num_layers[-1], num_filters, growth_rate)
 
-             return net, end_points
+            # final blocks
+            if global_pool:
+                with tf.variable_scope('final_block', [inputs]):
+                    net = slim.batch_norm(net)
+                    net = tf.nn.relu(net)
+                    net = _global_avg_pool2d(net, scope='global_avg_pool')
+
+            if num_classes is not None:
+                net = slim.conv2d(net, num_classes, 1,
+                           biases_initializer=tf.zeros_initializer(),
+                           scope='logits')
+
+            end_points = slim.utils.convert_collection_to_dict(
+                    end_points_collection)
+
+            if num_classes is not None:
+                end_points['predictions'] = slim.softmax(net, scope='predictions')
+
+            return net, end_points
 densenet.default_image_size = 224
 
 # =============================================================================
@@ -408,12 +414,12 @@ class dense(Network):
 
         for v in variables:
             # exclude the first conv layer to swap RGB to BGR
-            if v.name == (self._dense_scope + '/conv1/weights:0'):
+            if v.name == f'{self._dense_scope}/conv1/weights:0':
                 self._variables_to_fix[v.name] = v
                 continue
             # exclude the first conv layer to swap RGB to BGR
             if v.name.split(':')[0] in var_keep_dic:
-                print('Variables restored: %s' % v.name)
+                print(f'Variables restored: {v.name}')
                 variables_to_restore.append(v)
 
         return variables_to_restore
@@ -424,8 +430,14 @@ class dense(Network):
             with tf.device("/cpu:0"):
                 # fix RGB to BGR
                 conv1_rgb = tf.get_variable("conv1_rgb", [7, 7, 3, 64], trainable=False)
-                restorer_fc = tf.train.Saver({self._dense_scope + "/conv1/weights": conv1_rgb})
+                restorer_fc = tf.train.Saver({f"{self._dense_scope}/conv1/weights": conv1_rgb})
                 restorer_fc.restore(sess, pretrained_model)
 
-                sess.run(tf.assign(self._variables_to_fix[self._dense_scope + '/conv1/weights:0'],
-                                   tf.reverse(conv1_rgb, [2])))
+                sess.run(
+                    tf.assign(
+                        self._variables_to_fix[
+                            f'{self._dense_scope}/conv1/weights:0'
+                        ],
+                        tf.reverse(conv1_rgb, [2]),
+                    )
+                )
