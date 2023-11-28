@@ -146,9 +146,7 @@ def parse_args():
                         choices=NETS.keys(), default='dense')
     parser.add_argument('--dataset', dest='dataset', help='Trained dataset [pascal_voc pascal_voc_0712]',
                         choices=DATASETS.keys(), default='pascal_voc_0712')
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
@@ -160,10 +158,16 @@ if __name__ == '__main__':
     #设置训练好的模式的路径
     tfmodel = os.path.join('output', demonet, DATASETS[dataset][0], 'default', NETS[demonet][0])
 
-    if not os.path.isfile(tfmodel + '.meta'):
+    if not os.path.isfile(f'{tfmodel}.meta'):
         print(tfmodel)
-        raise IOError(('{:s} not found.\nDid you download the proper networks from '
-                       'our server and place them properly?').format(tfmodel + '.meta'))
+        raise IOError(
+            (
+                (
+                    '{:s} not found.\nDid you download the proper networks from '
+                    'our server and place them properly?'
+                ).format(f'{tfmodel}.meta')
+            )
+        )
 
     # set config
     tfconfig = tf.ConfigProto(allow_soft_placement=True)
@@ -193,7 +197,7 @@ if __name__ == '__main__':
 #    im_names = ['D_EAD2019_0.jpg']
     for im_name in im_names:
         print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-        print('Demo for data/demo/{}'.format(im_name))
+        print(f'Demo for data/demo/{im_name}')
         demo(sess, net, im_name)
 
     plt.show()

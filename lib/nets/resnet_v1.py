@@ -107,6 +107,7 @@ class resnetv1(Network):
           'depth_bottleneck': base_depth,
           'stride': stride
       }])
+
     if self._num_layers == 50:
       blocks = [
         resnet_v1_block('block1', bottleneck, base_depth=64,
@@ -146,7 +147,7 @@ class resnetv1(Network):
     else:
       # other numbers are not supported
       raise NotImplementedError
-    
+
     FIXED_BLOCKS = 1
 #    assert (0 <= cfg.RESNET.FIXED_BLOCKS < 4)
     assert (0 <= FIXED_BLOCKS < 4)
@@ -154,22 +155,23 @@ class resnetv1(Network):
     if FIXED_BLOCKS == 3:
       with slim.arg_scope(resnet_arg_scope(is_training=False)):
         net = self.build_base()
-        net_conv4, _ = resnet_v1.resnet_v1(net,
-#                                           blocks[0:cfg.RESNET.FIXED_BLOCKS],
-                                           blocks[0:FIXED_BLOCKS],
-                                           global_pool=False,
-                                           include_root_block=False,
-                                           scope=self._resnet_scope)
-#    elif cfg.RESNET.FIXED_BLOCKS > 0:
+        net_conv4, _ = resnet_v1.resnet_v1(
+            net,
+            blocks[:FIXED_BLOCKS],
+            global_pool=False,
+            include_root_block=False,
+            scope=self._resnet_scope,
+        )
     elif FIXED_BLOCKS > 0:
       with slim.arg_scope(resnet_arg_scope(is_training=False)):
         net = self.build_base()
-        net, _ = resnet_v1.resnet_v1(net,
-#                                     blocks[0:cfg.RESNET.FIXED_BLOCKS],
-                                     blocks[0:FIXED_BLOCKS],
-                                     global_pool=False,
-                                     include_root_block=False,
-                                     scope=self._resnet_scope)
+        net, _ = resnet_v1.resnet_v1(
+            net,
+            blocks[:FIXED_BLOCKS],
+            global_pool=False,
+            include_root_block=False,
+            scope=self._resnet_scope,
+        )
 
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
         net_conv4, _ = resnet_v1.resnet_v1(net,
@@ -178,14 +180,16 @@ class resnetv1(Network):
                                            global_pool=False,
                                            include_root_block=False,
                                            scope=self._resnet_scope)
-    else:  # cfg.RESNET.FIXED_BLOCKS == 0
+    else:# cfg.RESNET.FIXED_BLOCKS == 0
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
         net = self.build_base()
-        net_conv4, _ = resnet_v1.resnet_v1(net,
-                                           blocks[0:-1],
-                                           global_pool=False,
-                                           include_root_block=False,
-                                           scope=self._resnet_scope)
+        net_conv4, _ = resnet_v1.resnet_v1(
+            net,
+            blocks[:-1],
+            global_pool=False,
+            include_root_block=False,
+            scope=self._resnet_scope,
+        )
 
     self._act_summaries.append(net_conv4)
     self._layers['head'] = net_conv4
@@ -253,11 +257,11 @@ class resnetv1(Network):
 
     for v in variables:
       # exclude the first conv layer to swap RGB to BGR
-      if v.name == (self._resnet_scope + '/conv1/weights:0'):
+      if v.name == f'{self._resnet_scope}/conv1/weights:0':
         self._variables_to_fix[v.name] = v
         continue
       if v.name.split(':')[0] in var_keep_dic:
-        print('Varibles restored: %s' % v.name)
+        print(f'Varibles restored: {v.name}')
         variables_to_restore.append(v)
 
     return variables_to_restore
@@ -268,8 +272,12 @@ class resnetv1(Network):
       with tf.device("/cpu:0"):
         # fix RGB to BGR
         conv1_rgb = tf.get_variable("conv1_rgb", [7, 7, 3, 64], trainable=False)
-        restorer_fc = tf.train.Saver({self._resnet_scope + "/conv1/weights": conv1_rgb})
+        restorer_fc = tf.train.Saver(
+            {f"{self._resnet_scope}/conv1/weights": conv1_rgb})
         restorer_fc.restore(sess, pretrained_model)
 
-        sess.run(tf.assign(self._variables_to_fix[self._resnet_scope + '/conv1/weights:0'],
-                           tf.reverse(conv1_rgb, [2])))
+        sess.run(
+            tf.assign(
+                self._variables_to_fix[f'{self._resnet_scope}/conv1/weights:0'],
+                tf.reverse(conv1_rgb, [2]),
+            ))

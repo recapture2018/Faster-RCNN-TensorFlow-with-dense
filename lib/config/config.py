@@ -5,12 +5,8 @@ import numpy as np
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
-FLAGS2 = {}
+FLAGS2 = {"pixel_means": np.array([[[102.9801, 115.9465, 122.7717]]])}
 
-######################
-# General Parameters #
-######################
-FLAGS2["pixel_means"] = np.array([[[102.9801, 115.9465, 122.7717]]])
 tf.app.flags.DEFINE_integer('rng_seed', 3, "Tensorflow seed for reproducibility")
 
 ######################

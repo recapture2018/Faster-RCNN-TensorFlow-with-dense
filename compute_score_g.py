@@ -29,39 +29,33 @@ def get_args():
 #    parser.add_argument("--generalizationMetric", type=str, default="../mAP-IOU_EAD2019_results/metrics_detection.json", help="json file for generalization")
     parser.add_argument("--Result_dir", type=str, default="../finalEvaluationScores", help="all evaluation scores used for grading")
     parser.add_argument("--jsonFileName", type=str, default="metrics_generalization.json", help="all evaluation scores used for grading")
-    
-    args = parser.parse_args()
-    
-    return args
+
+    return parser.parse_args()
 
 def read_json(jsonFile):
     with open(jsonFile) as json_data:
-        data = json.load(json_data)
-        return data
+        return json.load(json_data)
     
 if __name__ == '__main__':
     import os
     import numpy as np
 
 #    deviation = computeDeviation(0.35, 0.35, 5)
-    
+
     valArgs = get_args()
     exists_detect = os.path.isfile(valArgs.detectionMetric)
 #    exists_generalization = os.path.isfile(valArgs.generalizationMetric)
     perClassDeviation = []
 #    if exists_detect and exists_generalization:
     if exists_detect:
-        data_det = read_json(valArgs.detectionMetric) 
-#        data_gen = read_json(valArgs.generalizationMetric) 
-        valAppend_det = []
+        data_det = read_json(valArgs.detectionMetric)
         valAppend_gen = []
-        for p in data_det["EADChallenge2019"].values():
-            valAppend_det.append(p)
+        valAppend_det = list(data_det["EADChallenge2019"].values())
 #        for p in data_gen["EADChallenge2019"].values():
 #            valAppend_gen.append(p)
-        
+
         mAP_d=valAppend_det[0]['value']*0.01
-        
+
         mAP_g=valAppend_gen[0]['value']*0.01
         iou_g=valAppend_gen[1]['value']*0.01
 
@@ -70,12 +64,12 @@ if __name__ == '__main__':
         for i in range (1, 8):
             deviation = computeDeviation(valAppend_det[i+2]['value']*0.01, valAppend_gen[i+2]['value']*0.01, tol_limit)
             perClassDeviation.append(deviation)
-            
+
         meanDeviation = np.mean(perClassDeviation)
-        
+
     else:
         print('generalization or detection file missing, both files are needed to compute this score')
-    
+
     '''
     creating json file
     '''
@@ -92,11 +86,10 @@ if __name__ == '__main__':
                       "value": (meanDeviation),  
                     } 
                 }
-        }           
+        }
         # append json file             
         os.makedirs(valArgs.Result_dir, exist_ok=True)
         jsonFileName=os.path.join(valArgs.Result_dir, valArgs.jsonFileName)
-        fileObj= open(jsonFileName, "a")
-        fileObj.write("\n")
-        json.dump(my_dictionary, fileObj)
-        fileObj.close()
+        with open(jsonFileName, "a") as fileObj:
+            fileObj.write("\n")
+            json.dump(my_dictionary, fileObj)

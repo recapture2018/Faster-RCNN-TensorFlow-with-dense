@@ -24,7 +24,7 @@ from pycocotools.cocoeval import COCOeval
 
 class coco(imdb):
     def __init__(self, image_set, year):
-        imdb.__init__(self, 'coco_' + year + '_' + image_set)
+        imdb.__init__(self, f'coco_{year}_{image_set}')
         # COCO specific config options
         self.config = {'use_salt': True,
                        'cleanup': True}
@@ -53,30 +53,29 @@ class coco(imdb):
             'test-dev2015': 'test2015',
         }
         coco_name = image_set + year  # e.g., "val2014"
-        self._data_name = (self._view_map[coco_name]
-                           if coco_name in self._view_map
-                           else coco_name)
+        self._data_name = self._view_map.get(coco_name, coco_name)
         # Dataset splits that have ground-truth annotations (test splits
         # do not have gt annotations)
         self._gt_splits = ('train', 'val', 'minival')
 
     def _get_ann_file(self):
         prefix = 'instances' if self._image_set.find('test') == -1 \
-            else 'image_info'
-        return osp.join(self._data_path, 'annotations',
-                        prefix + '_' + self._image_set + self._year + '.json')
+                else 'image_info'
+        return osp.join(
+            self._data_path,
+            'annotations',
+            f'{prefix}_{self._image_set}{self._year}.json',
+        )
 
     def _load_image_set_index(self):
         """
         Load image ids.
         """
-        image_ids = self._COCO.getImgIds()
-        return image_ids
+        return self._COCO.getImgIds()
 
     def _get_widths(self):
         anns = self._COCO.loadImgs(self._image_index)
-        widths = [ann['width'] for ann in anns]
-        return widths
+        return [ann['width'] for ann in anns]
 
     def image_path_at(self, i):
         """
@@ -90,12 +89,10 @@ class coco(imdb):
         """
         # Example image path for index=119993:
         #   images/train2014/COCO_train2014_000000119993.jpg
-        file_name = ('COCO_' + self._data_name + '_' +
-                     str(index).zfill(12) + '.jpg')
+        file_name = f'COCO_{self._data_name}_{str(index).zfill(12)}.jpg'
         image_path = osp.join(self._data_path, 'images',
                               self._data_name, file_name)
-        assert osp.exists(image_path), \
-            'Path does not exist: {}'.format(image_path)
+        assert osp.exists(image_path), f'Path does not exist: {image_path}'
         return image_path
 
     def gt_roidb(self):
@@ -103,11 +100,11 @@ class coco(imdb):
         Return the database of ground-truth regions of interest.
         This function loads/saves from/to a cache file to speed up future calls.
         """
-        cache_file = osp.join(self.cache_path, self.name + '_gt_roidb.pkl')
+        cache_file = osp.join(self.cache_path, f'{self.name}_gt_roidb.pkl')
         if osp.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
-            print('{} gt roidb loaded from {}'.format(self.name, cache_file))
+            print(f'{self.name} gt roidb loaded from {cache_file}')
             return roidb
 
         gt_roidb = [self._load_coco_annotation(index)
@@ -115,7 +112,7 @@ class coco(imdb):
 
         with open(cache_file, 'wb') as fid:
             pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
-        print('wrote gt roidb to {}'.format(cache_file))
+        print(f'wrote gt roidb to {cache_file}')
         return gt_roidb
 
     def _load_coco_annotation(self, index):
@@ -203,8 +200,7 @@ class coco(imdb):
     def _get_box_file(self, index):
         # first 14 chars / first 22 chars / all chars + .mat
         # COCO_val2014_0/COCO_val2014_000000447/COCO_val2014_000000447991.mat
-        file_name = ('COCO_' + self._data_name +
-                     '_' + str(index).zfill(12) + '.mat')
+        file_name = f'COCO_{self._data_name}_{str(index).zfill(12)}.mat'
         return osp.join(file_name[:14], file_name[:22], file_name)
 
     def _print_detection_eval_metrics(self, coco_eval):
@@ -251,7 +247,7 @@ class coco(imdb):
         eval_file = osp.join(output_dir, 'detection_results.pkl')
         with open(eval_file, 'wb') as fid:
             pickle.dump(coco_eval, fid, pickle.HIGHEST_PROTOCOL)
-        print('Wrote COCO eval results to: {}'.format(eval_file))
+        print(f'Wrote COCO eval results to: {eval_file}')
 
     def _coco_results_one_category(self, boxes, cat_id):
         results = []
@@ -285,7 +281,7 @@ class coco(imdb):
             coco_cat_id = self._class_to_coco_cat_id[cls]
             results.extend(self._coco_results_one_category(all_boxes[cls_ind],
                                                            coco_cat_id))
-        print('Writing results json to {}'.format(res_file))
+        print(f'Writing results json to {res_file}')
         with open(res_file, 'w') as fid:
             json.dump(results, fid)
 
@@ -295,7 +291,7 @@ class coco(imdb):
                                          self._year +
                                          '_results'))
         if self.config['use_salt']:
-            res_file += '_{}'.format(str(uuid.uuid4()))
+            res_file += f'_{str(uuid.uuid4())}'
         res_file += '.json'
         self._write_coco_results_file(all_boxes, res_file)
         # Only do evaluation on non-test sets

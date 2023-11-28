@@ -56,7 +56,7 @@ class vgg16(Network):
 
         for v in variables:
             # exclude the conv weights that are fc weights in vgg16
-            if v.name == 'vgg_16/fc6/weights:0' or v.name == 'vgg_16/fc7/weights:0':
+            if v.name in ['vgg_16/fc6/weights:0', 'vgg_16/fc7/weights:0']:
                 self._variables_to_fix[v.name] = v
                 continue
             # exclude the first conv layer to swap RGB to BGR
@@ -64,7 +64,7 @@ class vgg16(Network):
                 self._variables_to_fix[v.name] = v
                 continue
             if v.name.split(':')[0] in var_keep_dic:
-                print('Variables restored: %s' % v.name)
+                print(f'Variables restored: {v.name}')
                 variables_to_restore.append(v)
 
         return variables_to_restore
@@ -149,13 +149,12 @@ class vgg16(Network):
             # Try to have a deterministic order for the computing graph, for reproducibility
             with tf.control_dependencies([rpn_labels]):
                 rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
+        elif cfg.FLAGS.test_mode == 'nms':
+            rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
+        elif cfg.FLAGS.test_mode == 'top':
+            rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
         else:
-            if cfg.FLAGS.test_mode == 'nms':
-                rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
-            elif cfg.FLAGS.test_mode == 'top':
-                rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
-            else:
-                raise NotImplementedError
+            raise NotImplementedError
         return rois
 
     def build_predictions(self, net, rois, is_training, initializer, initializer_bbox):
